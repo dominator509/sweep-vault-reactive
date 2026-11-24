@@ -62,3 +62,5 @@ Review 2 (independent LLM review, 2026-11-24, findings only). No critical or hig
   - `_CALLBACK_SENDER` is immutable. The live run shows the Sepolia proxy injects the reactive contract address, so wiring is correct today. Check injection per chain before any redeploy.
   - The callback gas limit is a fixed 400,000. A cold contract with an expensive `receive()` can stall its own owner's sweeps only.
 - The deployed Sepolia vault (0x38D0...5d6) is the earlier build and is not redeployed. It lacks the zero-owner, fee-float and self-cold fixes, which apply to the next deploy.
+
+Live check of the fixed build (2026-11-24): the new Sepolia vault and Lasna reactive contract swept correctly end to end (sweep tx in deployment.json). Finding from that run: a sweep to a never-used cold address failed inside the callback proxy (`CallbackFailure`) because the inner call has about 200,000 gas and that case needs more (about 246,000 estimated). Sweeping to an existing wallet needs about 62,000. Not fixed in code; documented in README under "Live testnet run". Fix for real use: a higher `CALLBACK_GAS`, which means a reactive redeploy.

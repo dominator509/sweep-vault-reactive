@@ -1,1 +1,14 @@
-{"destChain":"Ethereum Sepolia (11155111)","vault":"0x38D0b27386f8e69556137BE6D334C89f7dC6A5d6","reactive_lasna":"0xfb1e3A95475ECD3575Bab5707669bf1A4DB21DE0","vaultDeployTx":"0x18912be85c5e1e3c2896533d030758e1ed6b41dba42bddb8247d4a7ad1c8dc22","reactiveDeployTx":"0x62b8d465e3e1522b19f46c262f404126932766d64c23cb210010b545cf173abc","setRuleTx":"0x15009bb0d715047e04b62908e419d403b62162e068702adaa36c1f29c9f95f34","depositTx":"0x7f0a383d589a14b19b977bcf7a06a1d5c770f9d76f3d81e370270929bb71679b","sweepCallbackTx":"0xa0db3792584189c5c5f919f233585b7e071e0e74310e77c7c0964cad27a342cd"}
+{
+ "destChain": "Ethereum Sepolia (11155111)",
+ "vault": "0x7a92362aF9Be18b34a8676904D5eA251FA560cCF",
+ "reactive_lasna": "0xCEdf0e9789f28C07F0cF47c1b40E59f227e2C982",
+ "vaultDeployTx": "0xe153c8181e267b61265c12a2a3d9d87e7e125a8b20d5d77cde2cc130d5f66acc",
+ "setRuleTx": "0xe0b7b08595f6088d54dc7e7fa2a960f8c52d9551bc91e786d24fb560098b5fb5",
+ "depositTx": "0x0fda9365fc82ac1af7b19543880c9edc2169d3238215053c4222730012f229a9",
+ "sweepCallbackTx": "0x130fa7f6a00c3a6d7a54725362d239c85a888321e59bc3f1581b10b3024228cf",
+ "previousDeployment": {
+  "vault": "0x38D0b27386f8e69556137BE6D334C89f7dC6A5d6",
+  "reactive_lasna": "0xfb1e3A95475ECD3575Bab5707669bf1A4DB21DE0",
+  "note": "first build, before the review fixes"
+ }
+}

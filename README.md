@@ -10,11 +10,15 @@ Track: Set It and Forget It. License: Apache-2.0.
 - The vault re-reads state in `sweep`, so stale or repeated callbacks are harmless.
 
 ## Live testnet run
-See `deployment.json`.
-- Vault (Eth Sepolia): 0x38D0b27386f8e69556137BE6D334C89f7dC6A5d6
-- Reactive (Lasna): 0xfb1e3A95475ECD3575Bab5707669bf1A4DB21DE0
-- setRule 0x15009bb0d715047e04b62908e419d403b62162e068702adaa36c1f29c9f95f34, deposit 0.004 ETH 0x7f0a383d589a14b19b977bcf7a06a1d5c770f9d76f3d81e370270929bb71679b
-- Reactive callback sweep 0xa0db3792584189c5c5f919f233585b7e071e0e74310e77c7c0964cad27a342cd (0.003 ETH swept, about 6 s after the deposit)
+Current deployment (the build with the review fixes). See `deployment.json`.
+- Vault (Eth Sepolia): 0x7a92362aF9Be18b34a8676904D5eA251FA560cCF
+- Reactive (Lasna): 0xCEdf0e9789f28C07F0cF47c1b40E59f227e2C982
+- setRule (cap 0.0002 ETH) 0xe0b7b08595f6088d54dc7e7fa2a960f8c52d9551bc91e786d24fb560098b5fb5, deposit 0x0fda9365fc82ac1af7b19543880c9edc2169d3238215053c4222730012f229a9
+- Reactive callback sweep 0x130fa7f6a00c3a6d7a54725362d239c85a888321e59bc3f1581b10b3024228cf (0.0004 ETH swept to the cold address, about 30 s after the deposit)
+
+First build (before the review fixes), also live: vault 0x38D0b27386f8e69556137BE6D334C89f7dC6A5d6, reactive 0xfb1e3A95475ECD3575Bab5707669bf1A4DB21DE0, sweep 0xa0db3792584189c5c5f919f233585b7e071e0e74310e77c7c0964cad27a342cd.
+
+Cold address note: the callback gets a fixed 400,000 gas budget and the proxy keeps about 200,000 of it for itself. A first-ever sweep to a brand-new address that has never held ETH needed more gas than that on Sepolia (estimate about 246,000) and the proxy logged a `CallbackFailure`. A cold address that already exists on chain (a normal wallet that has held ETH) sweeps fine. Raise `CALLBACK_GAS` in `SweepReactive` before using fresh cold addresses.
 
 ## Run it
 ```

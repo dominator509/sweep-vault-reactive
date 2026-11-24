@@ -2,7 +2,7 @@
 import solc from 'solc';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-const files = ['SweepVault.sol', 'SweepReactive.sol'];
+const files = ['SweepVault.sol', 'SweepReactive.sol', 'mocks/MockSystem.sol'];
 const sources = Object.fromEntries(files.map((f) => [f, { content: readFileSync(`contracts/${f}`, 'utf8') }]));
 const input = { language: 'Solidity', sources, settings: { evmVersion: 'shanghai', optimizer: { enabled: true, runs: 200 }, outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object'] } } } };
 const findImports = (p) => {

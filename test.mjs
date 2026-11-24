@@ -101,3 +101,37 @@ test('a cold address that rejects ETH makes the sweep revert and leaves the bala
   await assert.rejects(vault.connect(proxy).sweep(await reactive.getAddress(), o));
   assert.equal(await vault.balanceOf(o), parseEther('2'));
 });
+test('a third party cannot redirect someone else\'s deposit by calling setRule (Hermes review #238, claimed HIGH)', async () => {
+  const { provider, owner, other, proxy, reactive, cold, vault } = await setup();
+  const victim = await owner.getAddress(), attacker = await other.getAddress(), c = await cold.getAddress(), r = await reactive.getAddress();
+  // a third party deposits for the victim, who has no rule yet
+  await (await vault.connect(other).deposit(victim, { value: parseEther('2') })).wait();
+  // attacker front-runs with a rule that pays themselves: it only ever sets the attacker's own rule
+  await (await vault.connect(other).setRule(0n, attacker)).wait();
+  const [capV, coldV] = await vault.rules(victim);
+  assert.equal(capV, 0n); assert.equal(coldV, '0x0000000000000000000000000000000000000000');
+  const before = await bal(provider, attacker);
+  await (await vault.connect(proxy).sweep(r, victim, { gasLimit: 500000 })).wait();
+  assert.equal(await vault.balanceOf(victim), parseEther('2'));      // nothing moved
+  assert.equal(await bal(provider, attacker), before);               // attacker got nothing
+  // once the victim sets their own rule, the attacker's rule still does not apply to the victim
+  await (await vault.connect(owner).setRule(parseEther('1'), c)).wait();
+  await (await vault.connect(other).setRule(0n, attacker)).wait();
+  const before2 = await bal(provider, c);
+  await (await vault.connect(proxy).sweep(r, victim, { gasLimit: 500000 })).wait();
+  assert.equal((await bal(provider, c)) - before2, parseEther('1'));
+  assert.equal(await vault.balanceOf(victim), parseEther('1'));
+});
+test('invariant: sum of balances never exceeds the ETH held, across deposit, sweep and withdraw', async () => {
+  const { provider, owner, other, proxy, reactive, cold, vault } = await setup();
+  const a = await owner.getAddress(), b = await other.getAddress(), c = await cold.getAddress(), r = await reactive.getAddress(), v = await vault.getAddress();
+  const check = async () => assert.ok((await vault.balanceOf(a)) + (await vault.balanceOf(b)) <= (await bal(provider, v)));
+  await (await vault.connect(owner).setRule(parseEther('1'), c)).wait();
+  await (await vault.connect(other).setRule(parseEther('0.5'), c)).wait();
+  for (const [s, who, amt] of [[owner, a, '3'], [other, b, '2'], [owner, b, '0.25'], [other, a, '0.1']]) {
+    await (await vault.connect(s).deposit(who, { value: parseEther(amt) })).wait(); await check();
+    await (await vault.connect(proxy).sweep(r, a, { gasLimit: 500000 })).wait(); await check();
+    await (await vault.connect(proxy).sweep(r, b, { gasLimit: 500000 })).wait(); await check();
+  }
+  await (await vault.connect(owner).withdraw(parseEther('0.5'))).wait(); await check();
+});

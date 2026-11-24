@@ -44,3 +44,11 @@ Deployment scripts (`deploy.mjs`, `deploy-reactive.mjs`, `demo.mjs`, `faucet-lre
 
 ## Secrets
 None in the repo. The deploy scripts read a throwaway testnet key from a local file that is not committed. Please do not send keys or tokens.
+
+## Reviewer findings so far
+Review 1 (Hermes, text-only review of the source, 2026-11-24): one finding rated HIGH, three MEDIUM or LOW risks, and test gaps.
+- HIGH, "anyone can setRule for an address that received a deposit and take the funds": not reproducible. `setRule` writes `rules[msg.sender]`, so a caller can only set their own rule, and `sweep` reads the rule of the deposit's owner. Tests `a third party cannot redirect...` and `invariant: sum of balances...` (added in this PR) show an attacker rule changes nothing for the victim, before or after the victim sets a rule.
+- MEDIUM, reentrancy via a hostile cold address: state is updated before the external call and `sweep` can only be called by the callback proxy, so re-entry can only touch the caller's own balance. Not exploited in any test yet; a reentrant-cold test is still wanted.
+- MEDIUM, gas griefing with a reverting or expensive cold address: the owner chooses their own cold address, so this only hurts that owner. A revert leaves the balance intact (tested).
+- LOW, forced ETH (selfdestruct) is not credited and is stuck: true, no funds of users at risk. LOW, no zero-check on `vault_` in the reactive constructor: true, informational.
+- Demo notes accepted: use a normal wallet as the cold address in the next demo, show the cap arithmetic.

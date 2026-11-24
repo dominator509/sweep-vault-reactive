@@ -26,8 +26,8 @@ Deploy: `node deploy.mjs` (vault, addresses precomputed from nonces), `node depl
 See `AUDIT.md` for what is tested, what is not, and where a reviewer should look first. License: Apache-2.0 (`LICENSE`).
 
 ## Known limits (demo scope)
-- Testnet demo, not for real funds. Anyone can deposit for any owner, and every deposit triggers a paid callback, so spam costs the vault more than it costs the spammer. A real version needs a minimum deposit or an over-cap-only event.
-- Callback fees come out of the vault's ETH balance, which also holds user deposits.
+- Testnet demo, not for real funds. Anyone can deposit for any owner, and every deposit triggers a paid callback, so spam costs the float more than it costs the spammer. A real version needs a minimum deposit or an over-cap-only event.
+- Callback fees are paid from a separate fee float (ETH above the sum of user credits). Spam can drain the float and stop sweeps, but cannot touch deposits.
 - The trusted callback sender is fixed at deploy. Verify what the proxy injects on a new chain first.
 - Callback gas is fixed at 400,000. An owner who sets an expensive cold contract can stall only their own sweeps.
 - See AUDIT.md for review findings.

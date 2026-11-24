@@ -55,10 +55,10 @@ Review 1 (Hermes, text-only review of the source, 2026-11-24): one finding rated
 
 Review 2 (independent LLM review, 2026-11-24, findings only). No critical or high findings. Reproduced against this repo:
 - Fixed here: `deposit(address(0))` locked funds forever (reproduced; now reverts, with a test). `npm ci` failed on Linux because of `fsevents` in the lockfile (reproduced; lockfile regenerated, `npm ci` passes). `deployment.json` and `deploy.mjs` used two different key sets (`deploy.mjs` now writes the committed keys). `deploy.mjs` now checks that both contracts landed at the predicted addresses before writing `deployment.json`.
+- Fixed after the user's go: callback fee payments could spend ETH backing user credits (Mzungu F2, Hermes and Codex "inherited pay(amount)"; reproduced: with 2 ETH credited, the proxy's `pay(1 ETH)` left 1 ETH against 2 ETH of credits). `SweepVault` no longer inherits the library payer. It has its own `pay` that can only draw the fee float (ETH above the new `totalCredits`), so credits stay backed and owners can always redeem in full. If the float runs out, callbacks fail instead of touching deposits. Plain ETH sent to the vault tops up the float. Setting the vault itself as the cold address (Codex F3, accounting trap) is now rejected.
+- Added `react()` tests with a mocked system contract (log filter, callback payload, onlySystem).
 - Documented demo trade-offs, not changed:
-  - Spam deposits. `deposit(owner)` is permissionless and each `Deposited` event triggers a paid callback, even below the cap. Callback cost is higher than deposit cost. Acceptable on testnet. For real use, add a minimum deposit or emit only when the cap is crossed.
-  - Callback fees are paid from the vault's ETH balance, which mixes user deposits with the funding. `balanceOf` does not track fees. Separate the fee float before real funds.
+  - Spam deposits. `deposit(owner)` is permissionless and each `Deposited` event triggers a paid callback, even below the cap. The float pays for it, so spam can exhaust the float and stop sweeps, but no longer touches user deposits. Real use needs a minimum deposit or an over-cap-only event.
   - `_CALLBACK_SENDER` is immutable. The live run shows the Sepolia proxy injects the reactive contract address, so wiring is correct today. Check injection per chain before any redeploy.
   - The callback gas limit is a fixed 400,000. A cold contract with an expensive `receive()` can stall its own owner's sweeps only.
-- Still open: no unit test of `react()` with a mocked system contract.
-- The deployed Sepolia vault was built before the zero-address fix and is not redeployed. The fix applies to the next deploy.
+- The deployed Sepolia vault (0x38D0...5d6) is the earlier build and is not redeployed. It lacks the zero-owner, fee-float and self-cold fixes, which apply to the next deploy.

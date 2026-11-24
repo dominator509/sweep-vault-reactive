@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ganache from 'ganache';
-import { BrowserProvider, ContractFactory, Contract, parseEther } from 'ethers';
+import { BrowserProvider, ContractFactory, Contract, parseEther, keccak256, toUtf8Bytes, Interface } from 'ethers';
 const art = (n) => JSON.parse(readFileSync(`out/${n}.json`, 'utf8'));
 async function setup() {
   const provider = new BrowserProvider(ganache.provider({ logging: { quiet: true }, chain: { hardfork: 'shanghai' }, wallet: { totalAccounts: 6, defaultBalance: 1000 } }));
@@ -138,4 +138,65 @@ test('invariant: sum of balances never exceeds the ETH held, across deposit, swe
 test('deposit for the zero address is rejected so funds cannot be locked', async () => {
   const { owner, vault } = await setup();
   await assert.rejects(vault.connect(owner).deposit('0x0000000000000000000000000000000000000000', { value: parseEther('0.5') }));
+});
+const ZERO = '0x0000000000000000000000000000000000000000';
+test('pay(): only the proxy can call it, and it can only draw the fee float, never user credits', async () => {
+  const { provider, owner, proxy, other, vault } = await setup();
+  const v = await vault.getAddress(), o = await owner.getAddress();
+  // fund a 0.5 ETH float with plain ETH, then deposit 2 ETH of user credit
+  await (await owner.sendTransaction({ to: v, value: parseEther('0.5') })).wait();
+  await (await vault.connect(owner).deposit(o, { value: parseEther('2') })).wait();
+  assert.equal(await vault.totalCredits(), parseEther('2'));
+  const payAs = (s) => new Contract(v, ['function pay(uint256)'], s);
+  await assert.rejects(payAs(other).pay(parseEther('0.1')));
+  await (await payAs(proxy).pay(parseEther('0.5'))).wait();                 // the whole float: ok
+  assert.equal(await bal(provider, v), parseEther('2'));
+  await assert.rejects(payAs(proxy).pay(1n));                                  // credits are untouchable
+  assert.equal(await bal(provider, v), parseEther('2'));
+  await (await vault.connect(owner).withdraw(parseEther('2'))).wait();         // owner can still redeem in full
+  assert.equal(await vault.totalCredits(), 0n);
+});
+test('setting the vault itself as the cold address is rejected', async () => {
+  const { owner, vault } = await setup();
+  await assert.rejects(vault.connect(owner).setRule(parseEther('1'), await vault.getAddress()));
+  await assert.rejects(vault.connect(owner).setRule(parseEther('1'), ZERO));
+});
+test('totalCredits matches the sum of balances through deposit, sweep and withdraw', async () => {
+  const { owner, other, proxy, reactive, cold, vault } = await setup();
+  const a = await owner.getAddress(), b = await other.getAddress(), c = await cold.getAddress(), r = await reactive.getAddress();
+  await (await vault.connect(owner).setRule(parseEther('1'), c)).wait();
+  await (await vault.connect(owner).deposit(a, { value: parseEther('3') })).wait();
+  await (await vault.connect(other).deposit(b, { value: parseEther('1') })).wait();
+  await (await vault.connect(proxy).sweep(r, a, { gasLimit: 500000 })).wait();
+  await (await vault.connect(other).withdraw(parseEther('0.4'))).wait();
+  assert.equal(await vault.totalCredits(), (await vault.balanceOf(a)) + (await vault.balanceOf(b)));
+});
+test('react(): turns a matching Deposited log into a sweep callback request, ignores others, onlySystem', async () => {
+  const SYS = '0x8888888888888888888888888888888888888888';
+  const provider = new BrowserProvider(ganache.provider({ logging: { quiet: true }, chain: { hardfork: 'shanghai' }, wallet: { totalAccounts: 3, defaultBalance: 1000, unlockedAccounts: [SYS] } }));
+  const [deployer, stranger] = await Promise.all([0, 1].map((i) => provider.getSigner(i)));
+  const m = art('MockSystem');
+  const mock = await new ContractFactory(m.abi, m.bytecode, deployer).deploy(); await mock.waitForDeployment();
+  const code = await provider.send('eth_getCode', [await mock.getAddress(), 'latest']);
+  await provider.send('evm_setAccountCode', [SYS, code]);
+  await provider.send('evm_setAccountBalance', [SYS, '0x' + parseEther('10').toString(16)]);
+  const r = art('SweepReactive');
+  const VAULT = '0x38D0b27386f8e69556137BE6D334C89f7dC6A5d6', OWNER = '0x25b9E972c23A3dAfa6080eE9AdEF44631494a703';
+  const react = await new ContractFactory(r.abi, r.bytecode, deployer).deploy(11155111n, VAULT); await react.waitForDeployment();
+  const sys = await provider.getSigner(SYS);
+  const topic0 = BigInt(keccak256(toUtf8Bytes('Deposited(address,uint256,uint256)')));
+  const log = (over = {}) => ({ chainId: 11155111n, contractAddress: VAULT, topic0, topic1: BigInt(OWNER), topic2: 0n, topic3: 0n, data: '0x', blockNumber: 1n, opCode: 0n, blockHash: 0n, txHash: 0n, logIndex: 0n, ...over });
+  await assert.rejects(react.connect(stranger).react(log()));
+  const sysIface = new Interface(m.abi);
+  const events = async (tx) => (await tx.wait()).logs.filter((l) => l.address.toLowerCase() === SYS.toLowerCase()).map((l) => sysIface.parseLog(l));
+  const ok = await events(await react.connect(sys).react(log()));
+  assert.equal(ok.length, 1);
+  assert.equal(ok[0].name, 'CallbackRequested');
+  assert.equal(ok[0].args.recipient.toLowerCase(), VAULT.toLowerCase());
+  assert.equal(ok[0].args.chainId, 11155111n);
+  assert.equal(ok[0].args.gasLimit, 400000n);
+  const vi = new Interface(['function sweep(address,address)']);
+  const [first, own] = vi.decodeFunctionData('sweep', ok[0].args.payload);
+  assert.equal(first, ZERO); assert.equal(own.toLowerCase(), OWNER.toLowerCase());
+  for (const bad of [{ chainId: 1n }, { contractAddress: OWNER }, { topic0: 1n }]) assert.equal((await events(await react.connect(sys).react(log(bad)))).length, 0);
 });

@@ -28,6 +28,7 @@ contract SweepVault is AbstractCallback {
 
     function deposit(address owner) external payable {
         require(msg.value > 0, "no value");
+        require(owner != address(0), "owner=0");
         balanceOf[owner] += msg.value;
         emit Deposited(owner, msg.value, balanceOf[owner]);
     }

@@ -135,3 +135,7 @@ test('invariant: sum of balances never exceeds the ETH held, across deposit, swe
   }
   await (await vault.connect(owner).withdraw(parseEther('0.5'))).wait(); await check();
 });
+test('deposit for the zero address is rejected so funds cannot be locked', async () => {
+  const { owner, vault } = await setup();
+  await assert.rejects(vault.connect(owner).deposit('0x0000000000000000000000000000000000000000', { value: parseEther('0.5') }));
+});

@@ -15,4 +15,6 @@ const vault = await new ContractFactory(v.abi, v.bytecode, dw).deploy(DEST.proxy
 await vault.waitForDeployment(); console.log('vault', await vault.getAddress(), vault.deploymentTransaction().hash);
 const react = await new ContractFactory(r.abi, r.bytecode, lw).deploy(DEST.id, vaultAddr, { value: parseEther('1') });
 await react.waitForDeployment(); console.log('reactive', await react.getAddress(), react.deploymentTransaction().hash);
-writeFileSync('deployment.json', JSON.stringify({ destChainId: 11155111, vault: vaultAddr, reactive: reactAddr, vaultTx: vault.deploymentTransaction().hash, reactiveTx: react.deploymentTransaction().hash }, null, 1));
+// Post-deploy wiring check: each contract must sit at the address the other one was told to trust.
+if ((await vault.getAddress()) !== vaultAddr || (await react.getAddress()) !== reactAddr) throw new Error('deployed address differs from the predicted one: wiring is wrong, redeploy');
+writeFileSync('deployment.json', JSON.stringify({ destChain: 'Ethereum Sepolia (11155111)', vault: vaultAddr, reactive_lasna: reactAddr, vaultDeployTx: vault.deploymentTransaction().hash, reactiveDeployTx: react.deploymentTransaction().hash }, null, 1));

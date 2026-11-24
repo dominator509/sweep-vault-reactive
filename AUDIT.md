@@ -52,3 +52,13 @@ Review 1 (Hermes, text-only review of the source, 2026-11-24): one finding rated
 - MEDIUM, gas griefing with a reverting or expensive cold address: the owner chooses their own cold address, so this only hurts that owner. A revert leaves the balance intact (tested).
 - LOW, forced ETH (selfdestruct) is not credited and is stuck: true, no funds of users at risk. LOW, no zero-check on `vault_` in the reactive constructor: true, informational.
 - Demo notes accepted: use a normal wallet as the cold address in the next demo, show the cap arithmetic.
+
+Review 2 (independent LLM review, 2026-11-24, findings only). No critical or high findings. Reproduced against this repo:
+- Fixed here: `deposit(address(0))` locked funds forever (reproduced; now reverts, with a test). `npm ci` failed on Linux because of `fsevents` in the lockfile (reproduced; lockfile regenerated, `npm ci` passes). `deployment.json` and `deploy.mjs` used two different key sets (`deploy.mjs` now writes the committed keys). `deploy.mjs` now checks that both contracts landed at the predicted addresses before writing `deployment.json`.
+- Documented demo trade-offs, not changed:
+  - Spam deposits. `deposit(owner)` is permissionless and each `Deposited` event triggers a paid callback, even below the cap. Callback cost is higher than deposit cost. Acceptable on testnet. For real use, add a minimum deposit or emit only when the cap is crossed.
+  - Callback fees are paid from the vault's ETH balance, which mixes user deposits with the funding. `balanceOf` does not track fees. Separate the fee float before real funds.
+  - `_CALLBACK_SENDER` is immutable. The live run shows the Sepolia proxy injects the reactive contract address, so wiring is correct today. Check injection per chain before any redeploy.
+  - The callback gas limit is a fixed 400,000. A cold contract with an expensive `receive()` can stall its own owner's sweeps only.
+- Still open: no unit test of `react()` with a mocked system contract.
+- The deployed Sepolia vault was built before the zero-address fix and is not redeployed. The fix applies to the next deploy.

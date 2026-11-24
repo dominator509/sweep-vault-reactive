@@ -24,3 +24,10 @@ npm install && npm test   # 11 tests
 Deploy: `node deploy.mjs` (vault, addresses precomputed from nonces), `node deploy-reactive.mjs <vault>`, then `node demo.mjs <vault> <cold>`. Wallet key is read from `~/.reactive/key`; use a throwaway testnet key only.
 
 See `AUDIT.md` for what is tested, what is not, and where a reviewer should look first. License: Apache-2.0 (`LICENSE`).
+
+## Known limits (demo scope)
+- Testnet demo, not for real funds. Anyone can deposit for any owner, and every deposit triggers a paid callback, so spam costs the vault more than it costs the spammer. A real version needs a minimum deposit or an over-cap-only event.
+- Callback fees come out of the vault's ETH balance, which also holds user deposits.
+- The trusted callback sender is fixed at deploy. Verify what the proxy injects on a new chain first.
+- Callback gas is fixed at 400,000. An owner who sets an expensive cold contract can stall only their own sweeps.
+- See AUDIT.md for review findings.

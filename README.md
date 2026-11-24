@@ -19,6 +19,8 @@ See `deployment.json`.
 ## Run it
 ```
 git clone https://github.com/Reactive-Network/reactive-lib-omni vendor/reactive-lib-omni
-npm install && node build.mjs && npm test
+npm install && npm test   # 11 tests
 ```
 Deploy: `node deploy.mjs` (vault, addresses precomputed from nonces), `node deploy-reactive.mjs <vault>`, then `node demo.mjs <vault> <cold>`. Wallet key is read from `~/.reactive/key`; use a throwaway testnet key only.
+
+See `AUDIT.md` for what is tested, what is not, and where a reviewer should look first. License: Apache-2.0 (`LICENSE`).

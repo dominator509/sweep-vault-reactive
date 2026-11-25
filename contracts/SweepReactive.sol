@@ -11,7 +11,7 @@ import { AbstractReactive } from "@reactive/src/base/AbstractReactive.sol";
 contract SweepReactive is AbstractReactive {
     uint256 public immutable destChainId;
     address public immutable vault;
-    uint64 public constant CALLBACK_GAS = 400_000;
+    uint64 public constant CALLBACK_GAS = 1_000_000;
     // keccak256("Deposited(address,uint256,uint256)")
     uint256 private constant DEPOSITED_TOPIC0 = uint256(keccak256("Deposited(address,uint256,uint256)"));
 

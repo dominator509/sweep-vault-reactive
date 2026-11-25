@@ -29,7 +29,7 @@ Static analysis (Slither 0.11 style, run by us): `slither contracts/SweepVault.s
 ## Not tested yet
 - No fuzzing, no invariant tests, no formal checks, no independent review.
 - Only one live run, one owner, burn address as cold address.
-- Callback gas limit (400,000) is fixed and not stress-tested.
+- Callback gas limit (1,000,000) is fixed and not stress-tested.
 - Behavior when the callback proxy or Reactive Network is delayed or drops an event.
 - A contract cold address with a payable fallback that re-enters (state is updated before the external call, but this is our reading only).
 
@@ -60,5 +60,5 @@ Review 2 (independent LLM review, 2026-11-24, findings only). No critical or hig
 - Documented demo trade-offs, not changed:
   - Spam deposits. `deposit(owner)` is permissionless and each `Deposited` event triggers a paid callback, even below the cap. The float pays for it, so spam can exhaust the float and stop sweeps, but no longer touches user deposits. Real use needs a minimum deposit or an over-cap-only event.
   - `_CALLBACK_SENDER` is immutable. The live run shows the Sepolia proxy injects the reactive contract address, so wiring is correct today. Check injection per chain before any redeploy.
-  - The callback gas limit is a fixed 400,000. A cold contract with an expensive `receive()` can stall its own owner's sweeps only.
+  - The callback gas limit is a fixed 1,000,000. A cold contract with an expensive `receive()` can stall its own owner's sweeps only.
 - The deployed Sepolia vault (0x38D0...5d6) is the earlier build and is not redeployed. It lacks the zero-owner, fee-float and self-cold fixes, which apply to the next deploy.

@@ -194,7 +194,7 @@ test('react(): turns a matching Deposited log into a sweep callback request, ign
   assert.equal(ok[0].name, 'CallbackRequested');
   assert.equal(ok[0].args.recipient.toLowerCase(), VAULT.toLowerCase());
   assert.equal(ok[0].args.chainId, 11155111n);
-  assert.equal(ok[0].args.gasLimit, 400000n);
+  assert.equal(ok[0].args.gasLimit, 1000000n);
   const vi = new Interface(['function sweep(address,address)']);
   const [first, own] = vi.decodeFunctionData('sweep', ok[0].args.payload);
   assert.equal(first, ZERO); assert.equal(own.toLowerCase(), OWNER.toLowerCase());

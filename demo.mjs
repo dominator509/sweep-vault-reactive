@@ -10,7 +10,7 @@ const t1 = await v.setRule(parseEther(process.env.CAP || '0.001'), COLD); await 
 const t2 = await v.deposit(w.address, { value: parseEther(process.env.DEPOSIT || '0.004') }); await t2.wait(); console.log('deposit', t2.hash);
 for (let i = 0; i < 40; i++) {
   await new Promise((r) => setTimeout(r, 6000));
-  const logs = await v.queryFilter(v.filters.Swept(), -2000);
+  const logs = (await v.queryFilter(v.filters.Swept(), -2000)).filter((l) => l.args.cold.toLowerCase() === COLD.toLowerCase());
   if (logs.length) { for (const l of logs) console.log('Swept tx', l.transactionHash, formatEther(l.args.amount), 'to', l.args.cold); break; }
   console.log('waiting', i);
 }
